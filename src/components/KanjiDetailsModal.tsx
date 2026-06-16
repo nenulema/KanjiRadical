@@ -105,20 +105,24 @@ export default function KanjiDetailsModal({
       alert("TTS audio is not supported in this browser environment.");
       return;
     }
+    
     window.speechSynthesis.cancel(); // cancel any active speaking
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ja-JP";
-    utterance.rate = 0.85; // slower speed for comfortable learner comprehension
+    // Small delay to prevent Chrome bug where cancel() stops the newly queued speech
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "ja-JP";
+      utterance.rate = 0.85; // slower speed for comfortable learner comprehension
 
-    // Retrieve native Japanese speaking voice from browser roster if available
-    const voices = window.speechSynthesis.getVoices();
-    const jaVoice = voices.find((v) => v.lang.startsWith("ja") || v.lang === "ja-JP");
-    if (jaVoice) {
-      utterance.voice = jaVoice;
-    }
+      // Retrieve native Japanese speaking voice from browser roster if available
+      const voices = window.speechSynthesis.getVoices();
+      const jaVoice = voices.find((v) => v.lang.startsWith("ja") || v.lang === "ja-JP" || v.lang.includes("JP"));
+      if (jaVoice) {
+        utterance.voice = jaVoice;
+      }
 
-    window.speechSynthesis.speak(utterance);
+      window.speechSynthesis.speak(utterance);
+    }, 50);
   };
 
   // Canvas drawing handlers
