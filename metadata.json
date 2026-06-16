@@ -1,0 +1,6 @@
+{
+  "name": "Kanji Radical Explorer",
+  "description": "An interactive full-stack learning platform to master Kanji radicals and characters with contextual example sentences, furigana readings, and AI-powered mnemonic associations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
