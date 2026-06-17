@@ -41,6 +41,8 @@ export interface UserProgress {
     correctAnswers: number;
     streak: number;
   };
+  accessStatus?: "pending_payment" | "pending_approval" | "approved";
+  email?: string | null;
 }
 
 export interface QuizQuestion {

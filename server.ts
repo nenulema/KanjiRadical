@@ -3,6 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import nodemailer from "nodemailer";
 import { FALLBACK_DICTIONARY } from "./src/data/fallbackDictionary";
 
 // Load environment variables
@@ -34,6 +35,69 @@ if (apiKey) {
 // Host health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", geminiConfigured: !!apiKey });
+});
+
+// Setup Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
+
+// Notify admin about new payment
+app.post("/api/notify-admin", async (req, res) => {
+  const { userId, userEmail, userName } = req.body;
+  if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: "nenuhokka@gmail.com",
+    subject: "New Access Request - Kanji Explorer",
+    html: `
+      <h2>New Access Request</h2>
+      <p><strong>Name:</strong> ${userName || "Unknown"}</p>
+      <p><strong>Email:</strong> ${userEmail}</p>
+      <p>The user has confirmed their payment. Please verify their transfer.</p>
+      <br/>
+      <a href="http://localhost:3000/?approve=${userId}" style="padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px;">Approve User</a>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Email error:", error);
+    res.status(500).json({ error: "Failed to send email" });
+  }
+});
+
+// Notify user about approval
+app.post("/api/notify-user", async (req, res) => {
+  const { userEmail } = req.body;
+  if (!userEmail) return res.status(400).json({ error: "Missing userEmail" });
+
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: userEmail,
+    subject: "Access Approved - Kanji Explorer",
+    html: `
+      <h2>Access Approved!</h2>
+      <p>Your payment has been verified and your access to Kanji Explorer is now approved.</p>
+      <br/>
+      <a href="http://localhost:3000" style="padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px;">Go to App</a>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Email error:", error);
+    res.status(500).json({ error: "Failed to send email" });
+  }
 });
 
 // Kanji analysis API route incorporating the official @google/genai Type parameters
