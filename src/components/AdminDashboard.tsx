@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot, doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import { CheckCircle, XCircle, Users, Mail, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Users, Mail, AlertCircle, ShieldCheck, UserCheck, UserX, Clock, User } from "lucide-react";
 import { UserProgress } from "../types";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface PendingUser {
   id: string;
   email: string | null;
   status: string;
+  displayName?: string;
 }
 
 export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const usersRef = collection(db, "users");
@@ -26,6 +30,7 @@ export default function AdminDashboard() {
           id: docSnap.id,
           email: data.email || "Tanpa Email",
           status: data.accessStatus || "Unknown",
+          displayName: data.displayName || "Unknown User"
         });
       });
       setPendingUsers(users);
@@ -39,10 +44,10 @@ export default function AdminDashboard() {
   }, []);
 
   const handleApprove = async (userId: string, email: string | null) => {
+    setApprovingId(userId);
     try {
       await setDoc(doc(db, "users", userId), { accessStatus: "approved" }, { merge: true });
       
-      // Kirim notifikasi email tanpa menunggu (non-blocking)
       if (email && email !== "Tanpa Email") {
         fetch("/api/notify-user", {
           method: "POST",
@@ -55,6 +60,8 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error(err);
       alert("Gagal menyetujui akses. Periksa koneksi atau rules Firebase.");
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -68,79 +75,78 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex-grow flex items-center justify-center min-h-[500px]">
-        <div className="animate-pulse flex flex-col items-center">
-          <Users className="w-12 h-12 text-slate-600 mb-4" />
-          <p className="text-slate-400">Memuat data pelanggan...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-indigo-900/50 flex items-center justify-center border border-indigo-500/30">
-          <Users className="w-6 h-6 text-indigo-400" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-white">Admin Dashboard</h2>
-          <p className="text-slate-400 text-sm">Kelola permintaan akses masuk pelanggan</p>
-        </div>
-      </div>
-
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-        <div className="p-6 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            Menunggu Persetujuan
-            <span className="bg-amber-500/20 text-amber-400 text-xs py-0.5 px-2 rounded-full font-mono">
-              {pendingUsers.length}
-            </span>
-          </h3>
+    <div className="flex-1 overflow-y-auto bg-slate-950 p-6 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-4 mb-8 border-b border-slate-800 pb-6">
+          <div className="w-14 h-14 bg-amber-500/20 rounded-2xl flex items-center justify-center border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+            <ShieldCheck className="w-7 h-7 text-amber-500" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">{t("admin_title")}</h1>
+            <p className="text-slate-400 mt-1">{t("admin_desc")}</p>
+          </div>
         </div>
 
-        {pendingUsers.length === 0 ? (
-          <div className="p-16 text-center text-slate-500">
-            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-emerald-500/50 opacity-50" />
-            <p className="text-lg">Tidak ada pelanggan yang mengantre.</p>
-            <p className="text-sm mt-1">Semua request sudah ditangani.</p>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+            <div className="w-10 h-10 border-4 border-slate-700 border-t-amber-500 rounded-full animate-spin mb-4"></div>
+            <p>Loading customers...</p>
+          </div>
+        ) : pendingUsers.length === 0 ? (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
+            <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-10 h-10 text-emerald-500/50" />
+            </div>
+            <h3 className="text-xl font-medium text-slate-300 mb-2">{t("admin_empty_1")}</h3>
+            <p className="text-slate-500">{t("admin_empty_2")}</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-800">
-            {pendingUsers.map((pUser) => (
-              <div key={pUser.id} className="p-6 hover:bg-slate-800/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="grid gap-4">
+            {pendingUsers.map(user => (
+              <div 
+                key={user.id} 
+                className="bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-2xl p-5 md:p-6 transition-all shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6"
+              >
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-5 h-5 text-slate-400" />
+                  <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center shrink-0 border border-slate-700">
+                    <User className="w-6 h-6 text-slate-400" />
                   </div>
                   <div>
-                    <p className="font-medium text-white">{pUser.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Pending Payment Check
-                      </span>
-                      <span className="text-[10px] text-slate-600 font-mono">ID: {pUser.id.slice(0, 8)}...</span>
+                    <h3 className="text-lg font-semibold text-white truncate max-w-[200px] md:max-w-xs">{user.displayName}</h3>
+                    <div className="flex items-center gap-2 text-slate-400 text-sm mt-1">
+                      <Mail className="w-4 h-4" />
+                      <span className="truncate max-w-[180px] md:max-w-xs">{user.email}</span>
+                    </div>
+                    <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-500 text-xs font-medium px-2.5 py-1 rounded-full border border-amber-500/20">
+                      <Clock className="w-3.5 h-3.5" />
+                      {t("admin_pending_badge")}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t border-slate-800 md:border-none">
                   <button
-                    onClick={() => handleReject(pUser.id)}
-                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-rose-400 hover:text-white bg-transparent hover:bg-rose-900/50 border border-rose-900/50 hover:border-rose-500 rounded-lg transition-all"
+                    onClick={() => handleReject(user.id)}
+                    disabled={approvingId === user.id}
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 py-2.5 px-4 md:px-5 rounded-xl font-medium transition-colors border border-slate-700 hover:border-rose-900/50 disabled:opacity-50"
                   >
-                    <XCircle className="w-4 h-4" />
-                    Tolak
+                    <UserX className="w-4 h-4" />
+                    {t("admin_btn_reject")}
                   </button>
                   <button
-                    onClick={() => handleApprove(pUser.id, pUser.email)}
-                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 rounded-lg shadow-lg shadow-emerald-900/20 transition-all"
+                    onClick={() => handleApprove(user.id, user.email)}
+                    disabled={approvingId === user.id}
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-4 md:px-6 rounded-xl font-medium transition-all shadow-md hover:shadow-emerald-900/20 disabled:opacity-50"
                   >
-                    <CheckCircle className="w-4 h-4" />
-                    Approve Akses
+                    {approvingId === user.id ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <UserCheck className="w-5 h-5" />
+                        {t("admin_btn_approve")}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

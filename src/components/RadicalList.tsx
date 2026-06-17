@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Search, Compass, BookOpen, Layers } from "lucide-react";
 import { RadicalInfo, UserProgress } from "../types";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface RadicalListProps {
   radicals: RadicalInfo[];
@@ -16,6 +17,7 @@ export default function RadicalList({
   progress,
 }: RadicalListProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const { t } = useLanguage();
 
   const filteredRadicals = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -43,10 +45,10 @@ export default function RadicalList({
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Compass className="w-5 h-5 text-sky-400" />
-            Radical Library
+            {t("ui_radical_library")}
           </h2>
           <p className="text-xs text-slate-400">
-            Browse through {radicals.length} essential radicals to organize your kanji studies.
+            {t("ui_radical_desc").replace("51", radicals.length.toString())}
           </p>
         </div>
 
@@ -59,7 +61,7 @@ export default function RadicalList({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search radical name, symbol, or kanji..."
+            placeholder={t("ui_search_radical")}
             className="w-full bg-slate-800 border border-slate-705 text-white placeholder-slate-500 text-xs rounded-xl pl-9 pr-4 py-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
           />
         </div>
@@ -91,13 +93,13 @@ export default function RadicalList({
                 }`}
               >
                 {/* Visual decoration overlay */}
-                <div className="absolute -top-6 -right-6 text-6xl font-bold text-slate-800/20 group-hover:text-slate-800/30 transition-all pointer-events-none select-none font-sans">
+                <div translate="no" className="absolute -top-6 -right-6 text-6xl font-bold text-slate-800/20 group-hover:text-slate-800/30 transition-all pointer-events-none select-none font-sans">
                   {radical.symbol}
                 </div>
 
                 <div>
                   <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-3xl font-bold text-sky-400 group-hover:scale-110 transition-transform duration-350 select-none">
+                    <span translate="no" className="text-3xl font-bold text-sky-400 group-hover:scale-110 transition-transform duration-350 select-none">
                       {radical.symbol}
                     </span>
                     <div>
@@ -123,7 +125,7 @@ export default function RadicalList({
                       <Layers className="w-3 h-3 text-slate-500" />
                       {total} Kanji
                     </span>
-                    <span>{learned}/{total} Learned</span>
+                    <span>{learned}/{total} {t("ui_learned")}</span>
                   </div>
 
                   <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">

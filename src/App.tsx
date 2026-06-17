@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BookOpen, HelpCircle, Compass, GraduationCap, ChevronRight, Layers, Award, LogIn, LogOut } from "lucide-react";
+import { BookOpen, HelpCircle, Compass, GraduationCap, ChevronRight, Layers, Award, LogIn, LogOut, ShieldCheck, Info } from "lucide-react";
 import { auth, provider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -12,6 +12,8 @@ import KanjiDetailsModal from "./components/KanjiDetailsModal";
 import QuizView from "./components/QuizView";
 import AccessGate from "./components/AccessGate";
 import AdminDashboard from "./components/AdminDashboard";
+import { useLanguage } from "./contexts/LanguageContext";
+import LanguageSelector from "./components/LanguageSelector";
 
 const LOCAL_STORAGE_KEY = "kanji-radical-explorer-progress";
 
@@ -33,6 +35,7 @@ export default function App() {
   const [activeQuizRadicalId, setActiveQuizRadicalId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const { t } = useLanguage();
 
   const isAdmin = user?.email === "nenuhokka@gmail.com";
 
@@ -106,9 +109,12 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    if (!window.confirm(t("ui_logout_confirm") || "Apakah Anda yakin ingin logout?")) {
+      return;
+    }
     try {
       await signOut(auth);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error logging out:", error);
     }
   };
@@ -165,7 +171,7 @@ export default function App() {
       <header className="border-b border-slate-900 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-650 flex items-center justify-center shadow-lg font-bold text-white select-none">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg font-bold text-white select-none">
               根
             </div>
             <div>
@@ -176,30 +182,17 @@ export default function App() {
                 </span>
               </h1>
               <p className="text-[10px] text-slate-400">
-                Radical-based contextual kanji memorization playbook
+                {t("app_subtitle")}
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-4">
+            <LanguageSelector />
             <span className="text-xs text-slate-500 hidden sm:inline-block font-mono">
-              Learned: {progress.learnedKanji.length} Kanji
+              {t("header_learned")}: {progress.learnedKanji.length}
             </span>
-            <span className="text-slate-800 hidden sm:inline-block">|</span>
-            <a
-              href="#about_guide"
-              onClick={(e) => {
-                e.preventDefault();
-                alert(
-                  "Kanji Radical Explorer matches characters to foundational radicals. Select any radical to view list items, click characters to inspect interactive mnemonics and natural Japanese example sentences with translation details!"
-                );
-              }}
-              className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1 bg-slate-800 border border-slate-700 px-3.5 py-2 rounded-xl"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="hidden sm:inline">Guide</span>
-            </a>
-
+            
             {isAdmin && (
               <button
                 onClick={() => setShowAdminDashboard(!showAdminDashboard)}
@@ -209,7 +202,7 @@ export default function App() {
                     : "bg-slate-800 text-amber-400 hover:bg-slate-700 border border-slate-700"
                 }`}
               >
-                🛡️ <span className="hidden sm:inline">{showAdminDashboard ? "Tutup Admin" : "Admin Panel"}</span>
+                <ShieldCheck className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{showAdminDashboard ? t("header_close_admin") : t("header_admin")}</span>
               </button>
             )}
             
@@ -219,7 +212,7 @@ export default function App() {
                 className="text-xs text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 bg-rose-950/40 border border-rose-900/50 hover:bg-rose-900/60 px-3.5 py-2 rounded-xl cursor-pointer"
               >
                 <img src={user.photoURL || ""} alt="Profile" className="w-4 h-4 rounded-full border border-rose-500/30" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">{t("header_logout")}</span>
               </button>
             ) : (
               <button
@@ -227,7 +220,7 @@ export default function App() {
                 className="text-xs text-white transition-colors flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 px-3.5 py-2 rounded-xl cursor-pointer shadow-md shadow-indigo-900/20"
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Login (Sync)</span>
+                <span className="hidden sm:inline">{t("header_login")}</span>
               </button>
             )}
           </div>
@@ -241,6 +234,19 @@ export default function App() {
           {/* Main Container Stage */}
           <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
             
+            {/* Guide Section */}
+            <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-xl p-4 flex items-start gap-4">
+              <Info className="w-6 h-6 text-indigo-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-indigo-300 font-semibold mb-1">
+                  {t("header_guide")}
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  {t("guide_alert")}
+                </p>
+              </div>
+            </div>
+
             {/* Statistics progress overview row */}
             <section id="progress_overview" className="animate-fade-in">
               <ProgressReport

@@ -43,6 +43,7 @@ export interface UserProgress {
   };
   accessStatus?: "pending_payment" | "pending_approval" | "approved";
   email?: string | null;
+  displayName?: string | null;
 }
 
 export interface QuizQuestion {

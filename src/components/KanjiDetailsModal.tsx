@@ -12,8 +12,10 @@ import {
   Award,
   ChevronLeft,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { KanjiDetail, RadicalInfo, UserProgress } from "../types";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface KanjiDetailsModalProps {
   kanji: string;
@@ -40,10 +42,12 @@ export default function KanjiDetailsModal({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"card" | "canvas">("card");
   const [selectedSentenceIdx, setSelectedSentenceIdx] = useState(0);
+  const { t } = useLanguage();
 
   // Handwriting Canvas references & state
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [score, setScore] = useState<number | null>(null);
 
   const isLearned = progress.learnedKanji.includes(kanji);
   const isBookmarked = progress.bookmarkedKanji.includes(kanji);
@@ -168,8 +172,43 @@ export default function KanjiDetailsModal({
     ctx.stroke();
   };
 
+  const startDrawingTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current || e.touches.length === 0) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const drawTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !canvasRef.current || e.touches.length === 0) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
   const stopDrawing = () => {
-    setIsDrawing(false);
+    if (isDrawing) {
+      setIsDrawing(false);
+      // Run the score check automatically on every stroke finish
+      setTimeout(() => calculateScore(), 10);
+    }
   };
 
   const clearCanvas = () => {
@@ -178,6 +217,82 @@ export default function KanjiDetailsModal({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setScore(null);
+  };
+
+  const calculateScore = () => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Get user drawing pixel data
+    const userImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const userData = userImageData.data;
+
+    // Create an offscreen canvas to render the perfect target kanji
+    const offCanvas = document.createElement("canvas");
+    offCanvas.width = canvas.width;
+    offCanvas.height = canvas.height;
+    const offCtx = offCanvas.getContext("2d");
+    if (!offCtx) return;
+
+    // Draw the target kanji exactly like the phantom backdrop
+    offCtx.font = "800 210px sans-serif";
+    offCtx.textAlign = "center";
+    offCtx.textBaseline = "middle";
+    offCtx.fillStyle = "#000000";
+    // Slightly adjust the Y offset to match how browsers render textBaseline middle vs the DOM
+    offCtx.fillText(kanji, canvas.width / 2, canvas.height / 2 + 15);
+    
+    // Add a stroke to thicken the target, giving the user a margin of error
+    offCtx.lineWidth = 25;
+    offCtx.strokeStyle = "#000000";
+    offCtx.strokeText(kanji, canvas.width / 2, canvas.height / 2 + 15);
+
+    const targetImageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+    const targetData = targetImageData.data;
+
+    let targetFilled = 0;
+    let userFilled = 0;
+    let overlap = 0;
+
+    // Compare pixels (using alpha channel which is index 3, 7, 11...)
+    for (let i = 3; i < targetData.length; i += 4) {
+      const isTargetPixel = targetData[i] > 50;
+      const isUserPixel = userData[i] > 50;
+
+      if (isTargetPixel) targetFilled++;
+      if (isUserPixel) userFilled++;
+      if (isTargetPixel && isUserPixel) overlap++;
+    }
+
+    if (targetFilled === 0) {
+      setScore(0);
+      return;
+    }
+
+    // Algorithm:
+    // How much of the target did the user cover?
+    const coverage = overlap / targetFilled;
+    
+    // How much of the user's drawing was actually on the target? (Penalty for scribbling everywhere)
+    // We expect userFilled to be somewhat close to targetFilled, but maybe a bit more.
+    const accuracy = userFilled > 0 ? overlap / userFilled : 0;
+
+    // If they barely drew anything, score is 0
+    if (coverage < 0.1) {
+      setScore(0);
+      return;
+    }
+
+    // Weighted score: 70% coverage (reward for tracing everything), 30% accuracy (penalty for scribbling)
+    let rawScore = (coverage * 0.7 + accuracy * 0.3) * 100;
+    
+    // Boost the score generously because getting 100% pixel-perfect is impossible
+    rawScore = rawScore * 1.35; 
+    
+    setScore(Math.min(100, Math.round(rawScore)));
   };
 
   return (
@@ -224,27 +339,29 @@ export default function KanjiDetailsModal({
             {/* Quick bookmark toggle */}
             <button
               onClick={() => onToggleBookmark(kanji)}
-              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-semibold ${
                 isBookmarked
                   ? "bg-amber-950/30 border-amber-500/50 text-amber-400"
                   : "bg-slate-800/50 border-slate-750 text-slate-400 hover:text-slate-100"
               }`}
               title={isBookmarked ? "Remove Bookmark" : "Save Bookmark"}
             >
-              <Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-current" : ""}`} />
+              <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? "fill-current" : ""}`} />
+              <span className="hidden sm:inline">{t("ui_filter_bookmarked") || "Bookmark"}</span>
             </button>
 
             {/* Quick learned status toggle */}
             <button
               onClick={() => onToggleLearned(kanji)}
-              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-semibold ${
                 isLearned
                   ? "bg-emerald-950/30 border-emerald-500/50 text-emerald-400"
                   : "bg-slate-800/50 border-slate-750 text-slate-400 hover:text-slate-100"
               }`}
               title={isLearned ? "Mark as Unlearned" : "Mark as Learned"}
             >
-              <CheckCircle className={`w-4 h-4 ${isLearned ? "fill-current" : ""}`} />
+              <Star className={`w-3.5 h-3.5 ${isLearned ? "fill-current" : ""}`} />
+              <span className="hidden sm:inline">{t("ui_filter_learned") || "Learned"}</span>
             </button>
 
             {/* Close button */}
@@ -284,7 +401,7 @@ export default function KanjiDetailsModal({
             <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-6">
               {/* Display card container */}
               <div className="bg-slate-950 rounded-2xl border border-slate-800 p-6 flex flex-col items-center justify-center w-full sm:w-44 shrink-0 shadow-inner relative group">
-                <span className="text-7xl font-extrabold text-white text-center select-all font-sans">
+                <span translate="no" className="text-7xl font-extrabold text-white text-center select-all font-sans">
                   {kanji}
                 </span>
 
@@ -505,13 +622,35 @@ export default function KanjiDetailsModal({
                     onMouseMove={draw}
                     onMouseUp={stopDrawing}
                     onMouseLeave={stopDrawing}
-                    className="absolute cursor-crosshair cursor-pen z-10"
+                    onTouchStart={startDrawingTouch}
+                    onTouchMove={drawTouch}
+                    onTouchEnd={stopDrawing}
+                    onTouchCancel={stopDrawing}
+                    className="absolute cursor-crosshair cursor-pen z-10 touch-none"
                   />
 
-                  {/* Semi-transparent phantom backdrop of the character to help users trace! */}
-                  <span className="absolute text-[210px] font-extrabold text-slate-800/15 pointer-events-none select-none font-sans">
+                  {/* Phantom backdrop */}
+                  <span translate="no" className="absolute text-[210px] font-extrabold text-slate-800/15 pointer-events-none select-none font-sans">
                     {kanji}
                   </span>
+
+                  {/* Realtime Score Badge */}
+                  {score !== null && score > 0 && (
+                    <div className="absolute top-4 right-4 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3 py-1.5 rounded-xl shadow-lg flex flex-col items-end animate-in fade-in zoom-in duration-200">
+                      <div className="flex items-baseline gap-1">
+                        <span className={`text-2xl font-black leading-none ${
+                          score >= 90 ? 'text-emerald-400' :
+                          score >= 70 ? 'text-amber-400' : 'text-red-400'
+                        }`}>
+                          {score}
+                        </span>
+                        <span className="text-slate-400 text-xs font-bold">%</span>
+                      </div>
+                      <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mt-0.5">
+                        Match Score
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -520,12 +659,12 @@ export default function KanjiDetailsModal({
                     className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-350 hover:text-white rounded-xl text-xs font-semibold cursor-pointer border border-slate-700 transition-all"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                    Reset canvas
+                    Reset
                   </button>
 
                   <button
                     onClick={onClose}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold cursor-pointer transition-all uppercase tracking-wider"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-semibold cursor-pointer transition-all uppercase tracking-wider"
                   >
                     <Award className="w-3.5 h-3.5" />
                     Finish

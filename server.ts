@@ -347,8 +347,9 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Full-stack Kanji Radical server running at http://localhost:${PORT}`);
+  const listenPort = typeof PORT === "string" ? parseInt(PORT, 10) : PORT;
+  app.listen(listenPort, "0.0.0.0", () => {
+    console.log(`Full-stack Kanji Radical server running at http://localhost:${listenPort}`);
   });
 }
 

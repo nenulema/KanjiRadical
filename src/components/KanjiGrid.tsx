@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
-import { Check, Star, Filter, GraduationCap, Grid, Info } from "lucide-react";
+import { Check, Star, Bookmark, Filter, GraduationCap, Grid, Info } from "lucide-react";
 import { RadicalInfo, UserProgress } from "../types";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface KanjiGridProps {
   radical: RadicalInfo;
@@ -23,6 +24,7 @@ export default function KanjiGrid({
 }: KanjiGridProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useLanguage();
 
   const filteredKanji = useMemo(() => {
     let list = radical.kanjiList;
@@ -80,7 +82,7 @@ export default function KanjiGrid({
           className="bg-indigo-600 hover:bg-indigo-750 disabled:opacity-40 text-white font-medium text-xs px-5 py-3 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/10 cursor-pointer flex items-center justify-center gap-2 self-start md:self-center shrink-0 uppercase tracking-wider"
         >
           <GraduationCap className="w-4.5 h-4.5" />
-          Quiz Radical ({totalCount})
+          {t("ui_quiz_radical")} ({totalCount})
         </button>
       </div>
 
@@ -91,10 +93,10 @@ export default function KanjiGrid({
           <div className="flex items-baseline space-x-1.5">
             <span className="text-lg font-bold text-emerald-400">{learnedCount}</span>
             <span className="text-xs text-slate-500">/</span>
-            <span className="text-xs text-slate-400">{totalCount} Learned</span>
+            <span className="text-xs text-slate-400">{totalCount} {t("ui_learned")}</span>
           </div>
           <span className="text-slate-750 text-xs">|</span>
-          <span className="text-xs text-slate-400 font-mono font-medium">{progressPercent}% Mastered</span>
+          <span className="text-xs text-slate-400 font-mono font-medium">{progressPercent}% {t("ui_mastered")}</span>
         </div>
 
         {/* Filter controls */}
@@ -102,7 +104,7 @@ export default function KanjiGrid({
           {/* Quick Search */}
           <input
             type="text"
-            placeholder="Quick search..."
+            placeholder={t("ui_quick_search")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-slate-850 hover:bg-slate-800 border border-slate-750 focus:border-indigo-505 outline-none rounded-xl text-xs py-2 px-3 text-slate-100 placeholder-slate-500 h-9 transition-colors"
@@ -119,7 +121,7 @@ export default function KanjiGrid({
                     : "text-slate-400 hover:text-slate-100"
                 }`}
               >
-                {type}
+                {t(`ui_filter_${type}` as any) || type}
               </button>
             ))}
           </div>
@@ -150,7 +152,7 @@ export default function KanjiGrid({
                 onClick={() => onSelectKanji(char, radical)}
               >
                 {/* Kanji character displayed large */}
-                <span className="text-3xl font-extrabold tracking-normal font-sans group-hover:scale-110 transition-transform duration-250 select-none">
+                <span translate="no" className="text-3xl font-extrabold tracking-normal font-sans group-hover:scale-110 transition-transform duration-250 select-none">
                   {char}
                 </span>
 
@@ -165,7 +167,7 @@ export default function KanjiGrid({
                       className="text-amber-400 hover:text-amber-500 transition-colors p-0.5 rounded"
                       title="Bookmarked"
                     >
-                      <Star className="w-3 h-3 fill-amber-400" />
+                      <Bookmark className="w-3 h-3 fill-amber-400" />
                     </button>
                   )}
                   {isLearned && (
@@ -177,7 +179,7 @@ export default function KanjiGrid({
                       className="text-emerald-400 hover:text-emerald-505 transition-colors p-0.5 rounded"
                       title="Learned"
                     >
-                      <Check className="w-3 h-3 stroke-[3px]" />
+                      <Star className="w-3 h-3 fill-emerald-400" />
                     </button>
                   )}
                 </div>
