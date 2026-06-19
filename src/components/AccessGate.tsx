@@ -69,8 +69,12 @@ export default function AccessGate({ user, progress, onLogin, children }: Access
     if (!user) return;
     setIsRequesting(true);
     try {
-      // Update local and firestore status to pending_approval and save email
-      const updatedProgress = { ...progress, accessStatus: "pending_approval", email: user.email };
+      const updatedProgress = { 
+        ...progress, 
+        accessStatus: "pending_approval", 
+        email: user.email,
+        requestDate: new Date().toISOString()
+      };
       await setDoc(doc(db, "users", user.uid), updatedProgress, { merge: true });
       
       // Notify Admin via backend (tanpa await agar tidak memblokir UI jika email gagal)

@@ -44,6 +44,9 @@ export interface UserProgress {
   accessStatus?: "pending_payment" | "pending_approval" | "approved";
   email?: string | null;
   displayName?: string | null;
+  requestDate?: string;
+  kotobaFavorites?: number[];
+  kotobaProgressMap?: Record<number, "unlearned" | "learning" | "mastered">;
 }
 
 export interface QuizQuestion {

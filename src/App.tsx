@@ -14,6 +14,8 @@ import AccessGate from "./components/AccessGate";
 import AdminDashboard from "./components/AdminDashboard";
 import { useLanguage } from "./contexts/LanguageContext";
 import LanguageSelector from "./components/LanguageSelector";
+import KotobaApp from "./KotobaApp";
+import BunpoApp from "./components/BunpoApp";
 
 const LOCAL_STORAGE_KEY = "kanji-radical-explorer-progress";
 
@@ -25,6 +27,8 @@ const DEFAULT_PROGRESS: UserProgress = {
     correctAnswers: 0,
     streak: 0,
   },
+  kotobaFavorites: [],
+  kotobaProgressMap: {},
 };
 
 export default function App() {
@@ -35,6 +39,7 @@ export default function App() {
   const [activeQuizRadicalId, setActiveQuizRadicalId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [activeAppMode, setActiveAppMode] = useState<"kanji" | "kotoba" | "bunpo">("kanji");
   const { t } = useLanguage();
 
   const isAdmin = user?.email === "nenuhokka@gmail.com";
@@ -53,6 +58,20 @@ export default function App() {
             const mergedData = { ...DEFAULT_PROGRESS, ...data };
             setProgress(mergedData);
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mergedData));
+          } else {
+            // User document was deleted from Firestore by Admin (or brand new)
+            // Prevent old localStorage from bypassing approval
+            const currentLocal = localStorage.getItem(LOCAL_STORAGE_KEY);
+            let localData = DEFAULT_PROGRESS;
+            if (currentLocal) {
+              localData = { ...DEFAULT_PROGRESS, ...JSON.parse(currentLocal) };
+            }
+            if (localData.accessStatus === "approved" || localData.accessStatus === "pending_approval") {
+              const resetData = { ...localData, accessStatus: "pending_payment" };
+              setProgress(resetData);
+              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(resetData));
+              await setDoc(docRef, resetData);
+            }
           }
         } catch (error) {
           console.error("Error fetching progress from Firestore", error);
@@ -163,6 +182,29 @@ export default function App() {
   const activeRadical = RADICALS_DATA.find((r) => r.id === selectedRadicalId) || null;
   const activeQuizRadical = RADICALS_DATA.find((r) => r.id === activeQuizRadicalId) || null;
 
+  if (activeAppMode === "kotoba") {
+    return (
+      <AccessGate user={user} progress={progress} onLogin={handleLogin}>
+        <KotobaApp 
+          user={user}
+          onNavigate={setActiveAppMode} 
+          kotobaFavorites={progress.kotobaFavorites || []}
+          kotobaProgressMap={progress.kotobaProgressMap || {}}
+          onUpdateKotobaFavorites={(favs) => saveProgress({ ...progress, kotobaFavorites: favs })}
+          onUpdateKotobaProgressMap={(map) => saveProgress({ ...progress, kotobaProgressMap: map })}
+        />
+      </AccessGate>
+    );
+  }
+
+  if (activeAppMode === "bunpo") {
+    return (
+      <AccessGate user={user} progress={progress} onLogin={handleLogin}>
+        <BunpoApp user={user} onNavigate={setActiveAppMode} />
+      </AccessGate>
+    );
+  }
+
   return (
     <AccessGate user={user} progress={progress} onLogin={handleLogin}>
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans transition-all selection:bg-indigo-500/30 selection:text-indigo-200">
@@ -188,6 +230,20 @@ export default function App() {
           </div>
 
           <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setActiveAppMode("kotoba")}
+              className="text-xs font-bold text-[#C5A358] bg-[#1A1814] hover:bg-[#C5A358]/10 px-3.5 py-2 rounded-xl shadow-md border border-[#C5A358]/40 transition-all flex items-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Kotoba N3 Study</span>
+            </button>
+            <button
+              onClick={() => setActiveAppMode("bunpo")}
+              className="text-xs font-bold text-white bg-gradient-to-r from-[#5A5A40] to-[#737352] hover:from-[#454531] hover:to-[#5A5A40] px-3.5 py-2 rounded-xl shadow-md border border-[#5A5A40]/30 transition-all flex items-center gap-1.5"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Bunpo N3 Study</span>
+            </button>
             <LanguageSelector />
             <span className="text-xs text-slate-500 hidden sm:inline-block font-mono">
               {t("header_learned")}: {progress.learnedKanji.length}

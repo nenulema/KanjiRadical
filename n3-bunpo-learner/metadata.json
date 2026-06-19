@@ -1,0 +1,6 @@
+{
+  "name": "N3 Bunpo Learner",
+  "description": "A dynamic, interactive workspace for studying N3 Japanese grammar patterns, complete with structured exercises, formula lists, flashcards, a mock fill-in quiz, and AI-powered sentence grading.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

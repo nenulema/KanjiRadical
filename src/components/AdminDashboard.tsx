@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot, doc, setDoc } from "firebase/firestore";
+import { collection, query, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { CheckCircle, XCircle, Users, Mail, AlertCircle, ShieldCheck, UserCheck, UserX, Clock, User } from "lucide-react";
 import { UserProgress } from "../types";
@@ -10,33 +10,44 @@ interface PendingUser {
   email: string | null;
   status: string;
   displayName?: string;
+  requestDate?: string;
 }
 
 export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [approvedUsers, setApprovedUsers] = useState<PendingUser[]>([]);
+  const [activeTab, setActiveTab] = useState<"pending" | "approved">("pending");
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const { t } = useLanguage();
 
   useEffect(() => {
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("accessStatus", "==", "pending_approval"));
+    const q = query(usersRef); // Fetch all users
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const users: PendingUser[] = [];
+      const pending: PendingUser[] = [];
+      const approved: PendingUser[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as UserProgress;
-        users.push({
+        const userObj = {
           id: docSnap.id,
           email: data.email || "Tanpa Email",
           status: data.accessStatus || "Unknown",
-          displayName: data.displayName || "Unknown User"
-        });
+          displayName: data.displayName || data.email || "Tanpa Nama",
+          requestDate: data.requestDate
+        };
+        if (data.accessStatus === "pending_approval") {
+          pending.push(userObj);
+        } else if (data.accessStatus === "approved") {
+          approved.push(userObj);
+        }
       });
-      setPendingUsers(users);
+      setPendingUsers(pending);
+      setApprovedUsers(approved);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching pending users:", error);
+      console.error("Error fetching users:", error);
       setLoading(false);
     });
 
@@ -65,13 +76,14 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleReject = async (userId: string) => {
-    if (!window.confirm("Yakin ingin menolak request ini? Pelanggan akan diminta membayar ulang.")) return;
+  const handleDelete = async (userId: string, email: string | null) => {
+    if (!window.confirm(`PERINGATAN: Yakin ingin MENGHAPUS secara permanen akses untuk ${email}? \nJika mereka login lagi, mereka harus mendaftar/membayar lagi dari awal.`)) return;
     try {
-      await setDoc(doc(db, "users", userId), { accessStatus: "pending_payment" }, { merge: true });
+      await deleteDoc(doc(db, "users", userId));
+      alert(`Akun ${email} berhasil dihapus dari database.`);
     } catch (err) {
       console.error(err);
-      alert("Gagal menolak request.");
+      alert("Gagal menghapus pengguna.");
     }
   };
 
@@ -88,22 +100,46 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-4 mb-6 border-b border-slate-800">
+          <button
+            onClick={() => setActiveTab("pending")}
+            className={`pb-3 px-2 font-bold transition-all ${
+              activeTab === "pending"
+                ? "text-amber-500 border-b-2 border-amber-500"
+                : "text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            Menunggu Persetujuan ({pendingUsers.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("approved")}
+            className={`pb-3 px-2 font-bold transition-all ${
+              activeTab === "approved"
+                ? "text-emerald-500 border-b-2 border-emerald-500"
+                : "text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            Sudah Disetujui ({approvedUsers.length})
+          </button>
+        </div>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500">
             <div className="w-10 h-10 border-4 border-slate-700 border-t-amber-500 rounded-full animate-spin mb-4"></div>
             <p>Loading customers...</p>
           </div>
-        ) : pendingUsers.length === 0 ? (
+        ) : (activeTab === "pending" ? pendingUsers.length === 0 : approvedUsers.length === 0) ? (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
             <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-emerald-500/50" />
             </div>
-            <h3 className="text-xl font-medium text-slate-300 mb-2">{t("admin_empty_1")}</h3>
-            <p className="text-slate-500">{t("admin_empty_2")}</p>
+            <h3 className="text-xl font-medium text-slate-300 mb-2">Belum ada data</h3>
+            <p className="text-slate-500">Tidak ada pengguna dalam kategori ini.</p>
           </div>
         ) : (
           <div className="grid gap-4">
-            {pendingUsers.map(user => (
+            {(activeTab === "pending" ? pendingUsers : approvedUsers).map(user => (
               <div 
                 key={user.id} 
                 className="bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-2xl p-5 md:p-6 transition-all shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6"
@@ -114,40 +150,53 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white truncate max-w-[200px] md:max-w-xs">{user.displayName}</h3>
-                    <div className="flex items-center gap-2 text-slate-400 text-sm mt-1">
-                      <Mail className="w-4 h-4" />
-                      <span className="truncate max-w-[180px] md:max-w-xs">{user.email}</span>
+                    <div className="flex flex-col gap-1 mt-1">
+                      {user.displayName !== user.email && (
+                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                          <Mail className="w-4 h-4" />
+                          <span className="truncate max-w-[180px] md:max-w-xs">{user.email}</span>
+                        </div>
+                      )}
+                      {user.requestDate && (
+                        <div className="flex items-center gap-2 text-slate-500 text-[11px] mt-0.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>Mendaftar pada: {new Date(user.requestDate).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="mt-3 inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-500 text-xs font-medium px-2.5 py-1 rounded-full border border-amber-500/20">
                       <Clock className="w-3.5 h-3.5" />
-                      {t("admin_pending_badge")}
+                      {activeTab === "pending" ? t("admin_pending_badge") : "VIP Member"}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t border-slate-800 md:border-none">
                   <button
-                    onClick={() => handleReject(user.id)}
+                    onClick={() => handleDelete(user.id, user.email)}
                     disabled={approvingId === user.id}
                     className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 py-2.5 px-4 md:px-5 rounded-xl font-medium transition-colors border border-slate-700 hover:border-rose-900/50 disabled:opacity-50"
                   >
                     <UserX className="w-4 h-4" />
-                    {t("admin_btn_reject")}
+                    Hapus
                   </button>
-                  <button
-                    onClick={() => handleApprove(user.id, user.email)}
-                    disabled={approvingId === user.id}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-4 md:px-6 rounded-xl font-medium transition-all shadow-md hover:shadow-emerald-900/20 disabled:opacity-50"
-                  >
-                    {approvingId === user.id ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      <>
-                        <UserCheck className="w-5 h-5" />
-                        {t("admin_btn_approve")}
-                      </>
-                    )}
-                  </button>
+                  
+                  {activeTab === "pending" && (
+                    <button
+                      onClick={() => handleApprove(user.id, user.email)}
+                      disabled={approvingId === user.id}
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-4 md:px-6 rounded-xl font-medium transition-all shadow-md hover:shadow-emerald-900/20 disabled:opacity-50"
+                    >
+                      {approvingId === user.id ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ) : (
+                        <>
+                          <UserCheck className="w-5 h-5" />
+                          Approve
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

@@ -1,0 +1,6 @@
+{
+  "name": "Kotoba N3 Study & Draw",
+  "description": "Aplikasi pembelajaran Kotoba N3 terintegrasi dengan kanvas menggambar Kanji interaktif dan sistem penilaian goresan akurat berbasis AI",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -5,17 +5,8 @@
   --color-dark-panel: #161920;
   --color-brand-gold: #C5A358;
   --color-brand-gold-muted: rgba(197, 163, 88, 0.2);
+  --color-border-dark: rgba(255, 255, 255, 0.1);
   --color-border-dark-light: rgba(255, 255, 255, 0.05);
-
-  /* Bunpo Natural Tones Palette */
-  --color-natural-bg: #FDFCF0;
-  --color-natural-sidebar: #F9F8F0;
-  --color-natural-accent: #5A5A40;
-  --color-natural-accent-hover: #454531;
-  --color-natural-text-dark: #2C2C24;
-  --color-natural-text-muted: #8A8870;
-  --color-natural-border: #E6E4D5;
-  --color-natural-badge: #F5F2ED;
 }
 
 /* Animations and customization */
@@ -43,3 +34,4 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(197, 163, 88, 0.5);
 }
+
