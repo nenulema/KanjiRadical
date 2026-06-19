@@ -44,17 +44,29 @@ export default function BunpoApp({ user, onNavigate }: BunpoAppProps) {
 
   // Global Settings and States
   const [bunpoList, setBunpoList] = useState<BunpoItem[]>(() => {
-    const saved = localStorage.getItem("bunpo_list_custom");
-    return saved ? JSON.parse(saved) : BUNPO_DATA;
+    try {
+      const saved = localStorage.getItem("bunpo_list_custom");
+      return saved ? JSON.parse(saved) : BUNPO_DATA;
+    } catch {
+      return BUNPO_DATA;
+    }
   });
 
   const [displayLanguage, setDisplayLanguage] = useState<"ID" | "EN">(() => {
-    const saved = localStorage.getItem("bunpo_display_lang");
-    return (saved === "EN" ? "EN" : "ID") as "ID" | "EN";
+    try {
+      const saved = localStorage.getItem("bunpo_display_lang");
+      return (saved === "EN" ? "EN" : "ID") as "ID" | "EN";
+    } catch {
+      return "ID";
+    }
   });
 
   const [customApiKey, setCustomApiKey] = useState<string>(() => {
-    return localStorage.getItem("user_gemini_api_key") || "";
+    try {
+      return localStorage.getItem("user_gemini_api_key") || "";
+    } catch {
+      return "";
+    }
   });
 
   const [showSettings, setShowSettings] = useState(false);

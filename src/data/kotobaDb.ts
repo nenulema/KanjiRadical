@@ -304,69 +304,82 @@ export const DEFAULT_SETTINGS: KotobaSettings = {
 };
 
 export function getKotobaSettings(): KotobaSettings {
-  const settings = localStorage.getItem(L_STORAGE_KEY_SETTINGS);
-  if (settings) {
-    try {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(settings) };
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
+  try {
+    const settings = localStorage.getItem(L_STORAGE_KEY_SETTINGS);
+    return settings ? { ...DEFAULT_SETTINGS, ...JSON.parse(settings) } : DEFAULT_SETTINGS;
+  } catch {
+    return DEFAULT_SETTINGS;
   }
-  return DEFAULT_SETTINGS;
 }
 
 export function saveKotobaSettings(settings: KotobaSettings) {
-  localStorage.setItem(L_STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+  try {
+    localStorage.setItem(L_STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+  } catch {}
 }
 
 export function getKotobaData(): KotobaItem[] {
-  const custom = localStorage.getItem(L_STORAGE_KEY_KOTOBA);
-  if (custom) {
-    try {
+  try {
+    const custom = localStorage.getItem(L_STORAGE_KEY_KOTOBA);
+    if (custom) {
       return JSON.parse(custom);
-    } catch (e) {
-      console.error("Failed to parse custom local Kotoba data, resetting to default.", e);
     }
+  } catch (e) {
+    console.error("Failed to parse custom local Kotoba data, resetting to default.", e);
   }
   return parseCsvData(DEFAULT_RAW_CSV);
 }
 
 export function saveKotobaData(data: KotobaItem[]) {
-  localStorage.setItem(L_STORAGE_KEY_KOTOBA, JSON.stringify(data));
+  try {
+    localStorage.setItem(L_STORAGE_KEY_KOTOBA, JSON.stringify(data));
+  } catch {}
 }
 
 export function resetKotobaData() {
-  localStorage.removeItem(L_STORAGE_KEY_KOTOBA);
+  try {
+    localStorage.removeItem(L_STORAGE_KEY_KOTOBA);
+  } catch {}
 }
 
 export function getFavorites(): number[] {
-  const favorites = localStorage.getItem(L_STORAGE_KEY_FAVORITES);
-  return favorites ? JSON.parse(favorites) : [];
+  try {
+    const favorites = localStorage.getItem(L_STORAGE_KEY_FAVORITES);
+    return favorites ? JSON.parse(favorites) : [];
+  } catch {
+    return [];
+  }
 }
 
 export function saveFavorites(favorites: number[]) {
-  localStorage.setItem(L_STORAGE_KEY_FAVORITES, JSON.stringify(favorites));
+  try {
+    localStorage.setItem(L_STORAGE_KEY_FAVORITES, JSON.stringify(favorites));
+  } catch {}
 }
 
-// Learned map: {[id: number]: "unlearned" | "learning" | "mastered"}
 export interface ProgressMap {
   [id: number]: "unlearned" | "learning" | "mastered";
 }
 
 export function getProgressMap(): ProgressMap {
-  const progress = localStorage.getItem(L_STORAGE_KEY_LEARNED);
-  return progress ? JSON.parse(progress) : {};
+  try {
+    const progress = localStorage.getItem(L_STORAGE_KEY_LEARNED);
+    return progress ? JSON.parse(progress) : {};
+  } catch {
+    return {};
+  }
 }
 
 export function saveProgressMap(progress: ProgressMap) {
-  localStorage.setItem(L_STORAGE_KEY_LEARNED, JSON.stringify(progress));
+  try {
+    localStorage.setItem(L_STORAGE_KEY_LEARNED, JSON.stringify(progress));
+  } catch {}
 }
 
-// Streak data
 export interface StreakData {
   streak: number;
-  lastActiveDate: string; // YYYY-MM-DD
-  history: string[]; // YYYY-MM-DD list
+  lastActiveDate: string; 
+  history: string[]; 
   averageDrawingScore: number;
   charactersDrawn: number;
 }
@@ -379,12 +392,18 @@ export function getStreakData(): StreakData {
     averageDrawingScore: 0,
     charactersDrawn: 0
   };
-  const stringified = localStorage.getItem(L_STORAGE_KEY_STREAKS);
-  return stringified ? { ...defaults, ...JSON.parse(stringified) } : defaults;
+  try {
+    const stringified = localStorage.getItem(L_STORAGE_KEY_STREAKS);
+    return stringified ? { ...defaults, ...JSON.parse(stringified) } : defaults;
+  } catch {
+    return defaults;
+  }
 }
 
 export function saveStreakData(data: StreakData) {
-  localStorage.setItem(L_STORAGE_KEY_STREAKS, JSON.stringify(data));
+  try {
+    localStorage.setItem(L_STORAGE_KEY_STREAKS, JSON.stringify(data));
+  } catch {}
 }
 
 export function incrementStreak(): StreakData {
