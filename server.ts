@@ -341,8 +341,28 @@ async function startServer() {
   } else {
     console.log("Serving pre-built assets in Production mode...");
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    
+    // Serve static assets with explicit caching rules
+    app.use(express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(".html")) {
+          // Never cache HTML, always force browser to fetch latest version
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          res.setHeader("Pragma", "no-cache");
+          res.setHeader("Expires", "0");
+        } else if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff2?)$/)) {
+          // Cache hashed assets aggressively for 1 year
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+      }
+    }));
+    
+    // Fallback for SPA Routing (React Router, etc.)
     app.get("*", (req, res) => {
+      // Must also prevent caching on the fallback HTML delivery
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
