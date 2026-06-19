@@ -17,7 +17,7 @@ export default function LanguageSelector() {
         <button
           key={opt.code}
           onClick={() => setLanguage(opt.code)}
-          className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all text-sm ${
+          className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all text-xs sm:text-sm shrink-0 ${
             language === opt.code
               ? "bg-indigo-600 border border-indigo-400 shadow-md transform scale-105"
               : "bg-transparent border border-transparent hover:bg-slate-800 opacity-70 hover:opacity-100"

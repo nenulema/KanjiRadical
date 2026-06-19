@@ -230,17 +230,17 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto hide-scrollbar shrink-0 max-w-[60%] sm:max-w-none pl-2">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink-0 pl-1">
             <button
               onClick={() => setActiveAppMode("kotoba")}
-              className="text-xs font-bold text-[#C5A358] bg-[#1A1814] hover:bg-[#C5A358]/10 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl shadow-md border border-[#C5A358]/40 transition-all flex items-center gap-1.5 shrink-0"
+              className="text-xs font-bold text-[#C5A358] bg-[#1A1814] hover:bg-[#C5A358]/10 w-7 h-7 p-0 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl shadow-md border border-[#C5A358]/40 transition-all flex items-center justify-center sm:justify-start sm:gap-1.5 shrink-0"
             >
               <BookOpen className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Kotoba N3 Study</span>
             </button>
             <button
               onClick={() => setActiveAppMode("bunpo")}
-              className="text-xs font-bold text-white bg-gradient-to-r from-[#5A5A40] to-[#737352] hover:from-[#454531] hover:to-[#5A5A40] px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl shadow-md border border-[#5A5A40]/30 transition-all flex items-center gap-1.5 shrink-0"
+              className="text-xs font-bold text-white bg-gradient-to-r from-[#5A5A40] to-[#737352] hover:from-[#454531] hover:to-[#5A5A40] w-7 h-7 p-0 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl shadow-md border border-[#5A5A40]/30 transition-all flex items-center justify-center sm:justify-start sm:gap-1.5 shrink-0"
             >
               <GraduationCap className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Bunpo N3 Study</span>
@@ -253,7 +253,7 @@ export default function App() {
             {isAdmin && (
               <button
                 onClick={() => setShowAdminDashboard(!showAdminDashboard)}
-                className={`text-xs font-bold transition-colors flex items-center gap-1.5 px-3.5 py-2 rounded-xl cursor-pointer shadow-md ${
+                className={`text-xs font-bold transition-colors flex items-center justify-center sm:justify-start gap-1.5 w-7 h-7 p-0 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl cursor-pointer shadow-md shrink-0 ${
                   showAdminDashboard 
                     ? "bg-amber-500 text-slate-900 border border-amber-400" 
                     : "bg-slate-800 text-amber-400 hover:bg-slate-700 border border-slate-700"
@@ -266,7 +266,7 @@ export default function App() {
             {user ? (
               <button
                 onClick={handleLogout}
-                className="text-xs text-slate-200 hover:text-white transition-colors flex items-center gap-1.5 bg-rose-950/40 border border-rose-900/50 hover:bg-rose-900/60 px-3.5 py-2 rounded-xl cursor-pointer"
+                className="text-xs text-slate-200 hover:text-white transition-colors flex items-center justify-center sm:justify-start gap-1.5 bg-rose-950/40 border border-rose-900/50 hover:bg-rose-900/60 w-7 h-7 p-0 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl cursor-pointer shrink-0"
               >
                 <img src={user.photoURL || ""} alt="Profile" className="w-4 h-4 rounded-full border border-rose-500/30" />
                 <span className="hidden sm:inline">{t("header_logout")}</span>
@@ -274,7 +274,7 @@ export default function App() {
             ) : (
               <button
                 onClick={handleLogin}
-                className="text-xs text-white transition-colors flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 px-3.5 py-2 rounded-xl cursor-pointer shadow-md shadow-indigo-900/20"
+                className="text-xs text-white transition-colors flex items-center justify-center sm:justify-start gap-1.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 w-7 h-7 p-0 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl cursor-pointer shadow-md shadow-indigo-900/20 shrink-0"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{t("header_login")}</span>
