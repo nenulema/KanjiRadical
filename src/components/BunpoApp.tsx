@@ -70,6 +70,7 @@ export default function BunpoApp({ user, onNavigate }: BunpoAppProps) {
   // Fetch Global Database overlay
   useEffect(() => {
     const fetchGlobalData = async () => {
+      if (!db) return;
       try {
         const docRef = doc(db, "global_data", "bunpo_db");
         const docSnap = await getDoc(docRef);

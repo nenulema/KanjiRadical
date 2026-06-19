@@ -87,6 +87,7 @@ export default function KotobaApp({
 
     // Fetch Global Database overlay
     const fetchGlobalData = async () => {
+      if (!db) return;
       try {
         const docRef = doc(db, "global_data", "kotoba_db");
         const docSnap = await getDoc(docRef);

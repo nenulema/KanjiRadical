@@ -13,12 +13,17 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase cautiously to prevent White Screen of Death
+let app;
+export let auth: any;
+export let provider: any;
+export let db: any;
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
-export const provider = new GoogleAuthProvider();
-
-// Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app);
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  provider = new GoogleAuthProvider();
+  db = getFirestore(app);
+} catch (error) {
+  console.error("Firebase Initialization Error! Check if VITE_FIREBASE_API_KEY is missing in your deployment environment variables:", error);
+}
